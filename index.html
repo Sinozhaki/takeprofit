@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalkulator Profit Otomatis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1a2c42);
+      color: #e2e8f0;
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      transform: translateZ(0);
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+      );
+      transition: none;
+      animation: shine 2s infinite ease-in-out;
+    }
+
+    /* Latar belakang emas untuk profit Rp160.000 */
+    .bg-gold {
+      background: linear-gradient(145deg, #d4af37, #f0e1a1, #d4af37);
+      color: #333;
+    }
+
+    /* Latar belakang perak untuk profit Rp16.000 */
+    .bg-silver {
+      background: linear-gradient(145deg, #a8a8a8, #d3d3d3, #a8a8a8);
+      color: #333;
+    }
+
+    /* Mengubah warna teks badge agar tetap terlihat */
+    .bg-gold .bg-red-100 {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .bg-silver .bg-yellow-100 {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .text-green-profit {
+      color: #16a34a; /* Warna hijau untuk profit */
+    }
+    .text-red-profit {
+      color: #ef4444; /* Warna merah untuk profit negatif */
+    }
+    .text-main-color {
+      color: #e2e8f0;
+    }
+
+    @keyframes shine {
+      0% {
+        left: -100%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
+    
+    .scrolling-text {
+      display: inline-block;
+      white-space: nowrap;
+      animation: marquee 10s linear infinite;
+      overflow: hidden;
+    }
+
+    @keyframes marquee {
+      0%   { transform: translateX(0%); }
+      100% { transform: translateX(-100%); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-2 sm:p-4">
+
+  <div class="bg-slate-800 bg-opacity-80 p-4 sm:p-6 rounded-xl shadow-lg w-full max-w-sm">
+    <h1 class="text-xl sm:text-2xl font-bold text-center mb-4 text-white">Kalkulator Profit</h1>
+    
+    <div id="status" class="text-center text-xs sm:text-sm text-gray-400 mb-4">
+      Memuat data...
+    </div>
+
+    <div class="mb-4 bg-green-500 bg-opacity-20 p-3 sm:p-4 rounded-lg text-center">
+      <h2 class="text-sm sm:text-base font-semibold text-green-300">Total Profit</h2>
+      <p id="totalProfit" class="text-3xl sm:text-4xl font-extrabold text-green-500 mt-1 sm:mt-2">Rp 0</p>
+    </div>
+
+    <div class="mb-4">
+      <h3 class="text-base sm:text-lg font-semibold text-gray-300 mb-2">Detail Transaksi</h3>
+      <div id="detailList" class="space-y-2">
+        <!-- Detail item akan dimasukkan di sini oleh JavaScript -->
+      </div>
+    </div>
+    
+    <button id="refreshButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 sm:py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 shadow-md text-sm">
+      Muat Ulang Data
+    </button>
+
+  </div>
+
+  <script>
+    // Nilai yang Anda berikan
+    const API_KEY = "$2a$10$mx8berYVnQxRc7ATeB018Orxl1veAxJt/HhcqGd2CS6kSzL4yPg82";
+    const BIN_ID = "68b3e78443b1c97be931c7c5";
+
+    // Harga untuk setiap kategori
+    const PRICES = {
+      'restric': 0, 
+      'unrestrict': 160000,
+      'unrestric': 160000, 
+      'running': 16000
+    };
+
+    const statusEl = document.getElementById("status");
+    const totalProfitEl = document.getElementById("totalProfit");
+    const detailListEl = document.getElementById("detailList");
+    const refreshButton = document.getElementById("refreshButton");
+
+    function getCalculatedCost(item) {
+      const itemStatus = item.status ? item.status.toLowerCase() : '';
+      let itemCost = 0;
+
+      if (itemStatus === 'restric' && isCostApplicable(item.rentalDate)) {
+        itemCost = 16000;
+      } else if (itemStatus === 'running' && isCostApplicable(item.rentalDate)) {
+        itemCost = 16000;
+      } else if (itemStatus && PRICES[itemStatus] !== undefined) {
+        itemCost = PRICES[itemStatus];
+      }
+      return itemCost;
+    }
+
+    function isCostApplicable(dateString) {
+      if (!dateString || dateString.toLowerCase().includes('week')) {
+        return false;
+      }
+      try {
+        const date = new Date(dateString);
+        const dayIndex = date.getDay();
+        // Hari: Minggu=0, Senin=1, Selasa=2, Rabu=3, Kamis=4, Jumat=5, Sabtu=6
+        if (dayIndex >= 4 || dayIndex <= 2) {
+            return true;
+        }
+      } catch (e) {
+        console.error("Invalid date string:", dateString, e);
+      }
+      return false;
+    }
+
+    async function calculateCosts() {
+      statusEl.textContent = "Mengambil data dari JSONBin...";
+      totalProfitEl.textContent = "Rp 0";
+      detailListEl.innerHTML = "";
+      refreshButton.disabled = true;
+
+      try {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+          method: "GET",
+          headers: {
+            "X-Master-Key": API_KEY,
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          statusEl.textContent = `Gagal mengambil data: HTTP ${res.status}`;
+          console.error("Fetch error:", text);
+          return;
+        }
+
+        const payload = await res.json();
+        let data = payload.record ?? payload;
+
+        if (!Array.isArray(data)) {
+          statusEl.textContent = "Data bukan array, tidak dapat dihitung.";
+          console.error("Data is not an array:", data);
+          return;
+        }
+
+        let totalProfit = data.reduce((sum, item) => sum + getCalculatedCost(item), 0);
+        
+        data.sort((a, b) => getCalculatedCost(b) - getCalculatedCost(a));
+
+        detailListEl.innerHTML = '';
+
+        data.forEach((item) => {
+          let itemCost = getCalculatedCost(item);
+          let statusColor = "text-gray-600";
+          let statusBadge = "bg-gray-200 text-gray-800";
+          
+          const itemStatus = item.status ? item.status.toLowerCase() : '';
+
+          if (itemStatus === 'restric') {
+            statusColor = "text-green-600";
+            statusBadge = "bg-green-100 text-green-700";
+          } else if (itemStatus === 'unrestrict' || itemStatus === 'unrestric') {
+            statusColor = "text-red-600";
+            statusBadge = "bg-red-100 text-red-700";
+          } else if (itemStatus === 'running') {
+            statusColor = "text-yellow-600";
+            statusBadge = "bg-yellow-100 text-yellow-700";
+          }
+          
+          let percentage = totalProfit > 0 ? ((itemCost / totalProfit) * 100).toFixed(1) : 0;
+          if (itemCost === 0) {
+            percentage = 0;
+          }
+
+          const itemDiv = document.createElement("div");
+          
+          let cardClass = "flex items-center justify-between p-3 rounded-lg shadow-sm card";
+          let textColorClass = "text-gray-800";
+          
+          if (itemCost === 160000) {
+            cardClass += " bg-gold";
+            textColorClass = "text-[#333]"; 
+          } else if (itemCost === 16000) {
+            cardClass += " bg-silver";
+            textColorClass = "text-[#333]"; 
+          } else {
+            cardClass += " bg-gray-50 bg-opacity-10"; 
+            textColorClass = "text-gray-300";
+          }
+
+          itemDiv.className = cardClass;
+          
+          let emailText = item.email ?? 'Tidak Ada Email';
+          if (itemCost > 0) {
+              emailText = `<span class="scrolling-text">${emailText}</span>`;
+          }
+
+          itemDiv.innerHTML = `
+            <div>
+              <p class="font-medium text-sm ${textColorClass}">${emailText}</p>
+              <p class="text-xs ${textColorClass} opacity-80">Tanggal: ${item.rentalDate ?? '-'}</p>
+              <span class="inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${statusBadge}">${item.status ?? 'Status Tidak Dikenal'}</span>
+            </div>
+            <div class="flex flex-col items-end">
+              <p class="text-base font-bold ${textColorClass}">Rp ${itemCost.toLocaleString('id-ID')}</p>
+              ${itemCost > 0 ? `<p class="text-xs font-medium text-green-500 mt-1">${percentage}% dari total profit</p>` : ''}
+            </div>
+          `;
+          detailListEl.appendChild(itemDiv);
+        });
+
+        totalProfitEl.textContent = `Rp ${totalProfit.toLocaleString('id-ID')}`;
+        statusEl.textContent = `Berhasil: ${data.length} transaksi dihitung`;
+
+      } catch (err) {
+        statusEl.textContent = "Error: Terjadi kesalahan saat memproses data.";
+        console.error("Error:", err);
+      } finally {
+        refreshButton.disabled = false;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", calculateCosts);
+    refreshButton.addEventListener("click", calculateCosts);
+  </script>
+
+</body>
+</html>
