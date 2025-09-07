@@ -117,10 +117,10 @@
   </div>
 
   <script>
-    // Nilai yang Anda berikan
+    // --- KONFIGURASI: ganti BIN_ID dan (opsional) MASTER_KEY ---
     const API_KEY = "$2a$10$mx8berYVnQxRc7ATeB018Orxl1veAxJt/HhcqGd2CS6kSzL4yPg82";
     const BIN_ID = "68b3e78443b1c97be931c7c5";
-
+    
     // Harga untuk setiap kategori
     const PRICES = {
       'restric': 0, 
@@ -188,10 +188,10 @@
         }
 
         const payload = await res.json();
-        let data = payload.record ?? payload;
-
+        const data = payload.record?.users || payload.users || [];
+        
         if (!Array.isArray(data)) {
-          statusEl.textContent = "Data bukan array, tidak dapat dihitung.";
+          statusEl.textContent = "Data tidak dalam format yang diharapkan (array atau objek).";
           console.error("Data is not an array:", data);
           return;
         }
