@@ -182,19 +182,30 @@
 
         if (!res.ok) {
           const text = await res.text();
-          statusEl.textContent = `Gagal mengambil data: HTTP ${res.status}`;
-          console.error("Fetch error:", text);
+          statusEl.textContent = `Gagal mengambil data: HTTP ${res.status} - ${res.statusText}. Pesan: ${text}`;
+          console.error("Fetch error:", res.status, res.statusText, text);
           return;
         }
 
         const payload = await res.json();
-        const data = payload.record?.users || payload.users || [];
-        
-        if (!Array.isArray(data)) {
-          statusEl.textContent = "Data tidak dalam format yang diharapkan (array atau objek).";
-          console.error("Data is not an array:", data);
-          return;
+        console.log("Respon API mentah:", payload);
+
+        let data = [];
+        if (payload.record && Array.isArray(payload.record)) {
+            data = payload.record;
+        } else if (Array.isArray(payload)) {
+            data = payload;
+        } else if (payload.record && Array.isArray(payload.record.users)) {
+            data = payload.record.users;
+        } else if (Array.isArray(payload.users)) {
+            data = payload.users;
+        } else {
+            statusEl.textContent = "Data tidak dalam format yang diharapkan (array atau objek dengan properti 'users').";
+            console.error("Struktur data tidak sesuai harapan. Payload:", payload);
+            return;
         }
+        
+        console.log("Data yang diproses:", data);
 
         let totalProfit = data.reduce((sum, item) => sum + getCalculatedCost(item), 0);
         
